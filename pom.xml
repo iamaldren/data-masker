@@ -3,7 +3,7 @@
 
     <groupId>io.github.iamaldren</groupId>
     <artifactId>micrometer-handler-annotation</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A lib that uses annotation to for Metrics execution</description>
