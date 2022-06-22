@@ -11,4 +11,12 @@ public @interface Timer {
 
     String name() default "micrometer.handler.annotation.timer";
 
+    String[] tags() default {};
+
+    boolean longTask() default false;
+
+    double[] percentiles() default {};
+
+    boolean publishPercentiles() default false;
+
 }
