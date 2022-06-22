@@ -1,18 +1,20 @@
 package io.github.iamaldren.aspects;
 
-import io.github.iamaldren.annotations.Timer;
+import io.github.iamaldren.annotations.Time;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.time.Instant;
+import java.lang.reflect.Method;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -23,73 +25,90 @@ public class TimerMetricsProcessor {
 
     private final MeterRegistry meterRegistry;
 
-    @Around("@annotation(methodTimer)")
-    public Object aroundAdvice(ProceedingJoinPoint joinPoint, Timer methodTimer) throws Throwable {
-        if(methodTimer.longTask()) {
-            return executeLongTimer(joinPoint, methodTimer);
+    @Around("@annotation(methodTime)")
+    public Object aroundAdvice(ProceedingJoinPoint joinPoint, Time methodTime) throws Throwable {
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
+
+        if(methodTime.longTask()) {
+            return executeLongTimer(joinPoint, methodTime, stopWhenCompleted);
         }
 
-        return executeTimer(joinPoint, methodTimer);
+        return executeTimer(joinPoint, methodTime, stopWhenCompleted);
     }
 
-    private Object executeTimer(ProceedingJoinPoint joinPoint, Timer methodTimer) throws Throwable {
-        Instant start = Instant.now();
+    private Object executeTimer(ProceedingJoinPoint joinPoint, Time methodTime, boolean stopWhenCompleted) throws Throwable {
+        Timer.Sample timer = Timer.start(meterRegistry);
 
-        Object proceed = joinPoint.proceed();
+        if(stopWhenCompleted) {
+            return ((CompletionStage<?>) joinPoint.proceed())
+                    .whenComplete((result, throwable) -> stopTimer(timer, methodTime));
+        }
 
-        Instant end = Instant.now();
-
-        Optional<io.micrometer.core.instrument.Timer> timerObj = buildTimer(methodTimer);
-        timerObj.ifPresent(timer -> {
-            timer.record(Duration.between(start, end));
-            log.debug("Total execution time for {} is {}ms", methodTimer.name(), timer.totalTime(TimeUnit.MILLISECONDS));
-        });
-
-        return proceed;
+        try {
+            return joinPoint.proceed();
+        } finally {
+            stopTimer(timer, methodTime);
+        }
     }
 
-    private Object executeLongTimer(ProceedingJoinPoint joinPoint, Timer methodTimer) throws Throwable {
-        Optional<LongTaskTimer.Sample> longTaskTimer = buildLongTaskTimer(methodTimer).map(LongTaskTimer::start);
-
-        Object proceed = joinPoint.proceed();
-        longTaskTimer.ifPresent(sample -> {
-            stopLongTaskTimer(sample);
-            log.debug("Total execution time for {} is {}ms", methodTimer.name(), sample.duration(TimeUnit.MILLISECONDS));
-        });
-
-        return proceed;
+    private void stopTimer(Timer.Sample timer, Time methodTime) {
+        long duration = stopSampleTimer(timer, methodTime);
+        log.debug("Total execution time for {} is {}ms", methodTime.name(), TimeUnit.MILLISECONDS.convert(duration, TimeUnit.NANOSECONDS));
     }
 
-    private void stopLongTaskTimer(LongTaskTimer.Sample sample) {
+    private long stopSampleTimer(Timer.Sample timer, Time methodTime) {
+        try {
+            Timer.Builder builder = Timer
+                    .builder(methodTime.name())
+                    .tags(methodTime.tags());
+
+            if(methodTime.publishPercentiles()) {
+                builder.publishPercentileHistogram(methodTime.publishPercentiles());
+                builder.publishPercentiles(methodTime.percentiles());
+            }
+
+            return timer.stop(builder.register(meterRegistry));
+        } catch (Exception e) {
+            log.warn("Error stopping timer", e);
+        }
+
+        return 0;
+    }
+
+    private Object executeLongTimer(ProceedingJoinPoint joinPoint, Time methodTime, boolean stopWhenCompleted) throws Throwable {
+        Optional<LongTaskTimer.Sample> longTaskTimer = buildLongTaskTimer(methodTime).map(LongTaskTimer::start);
+
+        if(stopWhenCompleted) {
+            return ((CompletionStage<?>) joinPoint.proceed())
+                    .whenComplete((result, throwable) -> longTaskTimer.ifPresent(sample -> {
+                        stopLongTaskTimer(sample, methodTime);
+                    }));
+        }
+
+        try {
+            return joinPoint.proceed();
+        } finally {
+            longTaskTimer.ifPresent(sample -> {
+                stopLongTaskTimer(sample, methodTime);
+            });
+        }
+    }
+
+    private void stopLongTaskTimer(LongTaskTimer.Sample sample, Time methodTime) {
         try {
             sample.stop();
+            log.debug("Total execution time for {} is {}ms", methodTime.name(), sample.duration(TimeUnit.MILLISECONDS));
         } catch (Exception e) {
             log.warn("Error stopping long task timer", e);
         }
     }
 
-    private Optional<io.micrometer.core.instrument.Timer> buildTimer(Timer methodTimer) {
-        try {
-            io.micrometer.core.instrument.Timer.Builder builder = io.micrometer.core.instrument.Timer
-                    .builder(methodTimer.name())
-                    .tags(methodTimer.tags());
-
-            if(methodTimer.publishPercentiles()) {
-                builder.publishPercentileHistogram(methodTimer.publishPercentiles());
-                builder.publishPercentiles(methodTimer.percentiles());
-            }
-
-            return Optional.of(builder.register(meterRegistry));
-        } catch (Exception e) {
-            return Optional.empty();
-        }
-    }
-
-    private Optional<LongTaskTimer> buildLongTaskTimer(Timer methodTimer) {
+    private Optional<LongTaskTimer> buildLongTaskTimer(Time methodTime) {
         try {
             return Optional.of(LongTaskTimer
-                    .builder(methodTimer.name())
-                    .tags(methodTimer.tags())
+                    .builder(methodTime.name())
+                    .tags(methodTime.tags())
                     .register(meterRegistry));
         } catch (Exception e) {
             return Optional.empty();
