@@ -8,14 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -29,9 +26,7 @@ public class TimerMetricsProcessor {
     @Around("@annotation(methodTimer)")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint, Timer methodTimer) throws Throwable {
         if(methodTimer.longTask()) {
-            Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
-            final boolean stopWhenComplete = CompletionStage.class.isAssignableFrom(method.getReturnType());
-            return executeLongTimer(joinPoint, methodTimer, stopWhenComplete);
+            return executeLongTimer(joinPoint, methodTimer);
         }
 
         return executeTimer(joinPoint, methodTimer);
@@ -44,44 +39,25 @@ public class TimerMetricsProcessor {
 
         Instant end = Instant.now();
 
-        io.micrometer.core.instrument.Timer.Builder builder = io.micrometer.core.instrument.Timer
-                .builder(methodTimer.name())
-                .tags(methodTimer.tags());
-
-        if(methodTimer.publishPercentiles()) {
-            builder.publishPercentileHistogram(methodTimer.publishPercentiles());
-            builder.publishPercentiles(methodTimer.percentiles());
-        }
-
-        io.micrometer.core.instrument.Timer timer = builder.register(meterRegistry);
-        timer.record(Duration.between(start, end));
-        log.debug("Total execution time for {} is {}ms", methodTimer.name(), timer.totalTime(TimeUnit.MILLISECONDS));
+        Optional<io.micrometer.core.instrument.Timer> timerObj = buildTimer(methodTimer);
+        timerObj.ifPresent(timer -> {
+            timer.record(Duration.between(start, end));
+            log.debug("Total execution time for {} is {}ms", methodTimer.name(), timer.totalTime(TimeUnit.MILLISECONDS));
+        });
 
         return proceed;
     }
 
-    private Object executeLongTimer(ProceedingJoinPoint joinPoint, Timer methodTimer, boolean stopWhenComplete) throws Throwable {
-        Instant start = Instant.now();
+    private Object executeLongTimer(ProceedingJoinPoint joinPoint, Timer methodTimer) throws Throwable {
+        Optional<LongTaskTimer.Sample> longTaskTimer = buildLongTaskTimer(methodTimer).map(LongTaskTimer::start);
 
         Object proceed = joinPoint.proceed();
+        longTaskTimer.ifPresent(sample -> {
+            stopLongTaskTimer(sample);
+            log.debug("Total execution time for {} is {}ms", methodTimer.name(), sample.duration(TimeUnit.MILLISECONDS));
+        });
 
-        Instant end = Instant.now();
-
-        Optional<LongTaskTimer> longTaskTimer = buildLongTaskTimer(joinPoint, methodTimer);
-
-        if(longTaskTimer.isPresent()) {
-            longTaskTimer.get().start();
-        }
-
-        return null;
-    }
-
-    private void startLongTaskTimer(LongTaskTimer timer) {
-        try {
-            timer.start();
-        } catch (Exception e) {
-            log.warn("Error stopping long task timer", e);
-        }
+        return proceed;
     }
 
     private void stopLongTaskTimer(LongTaskTimer.Sample sample) {
@@ -92,7 +68,24 @@ public class TimerMetricsProcessor {
         }
     }
 
-    private Optional<LongTaskTimer> buildLongTaskTimer(ProceedingJoinPoint joinPoint, Timer methodTimer) {
+    private Optional<io.micrometer.core.instrument.Timer> buildTimer(Timer methodTimer) {
+        try {
+            io.micrometer.core.instrument.Timer.Builder builder = io.micrometer.core.instrument.Timer
+                    .builder(methodTimer.name())
+                    .tags(methodTimer.tags());
+
+            if(methodTimer.publishPercentiles()) {
+                builder.publishPercentileHistogram(methodTimer.publishPercentiles());
+                builder.publishPercentiles(methodTimer.percentiles());
+            }
+
+            return Optional.of(builder.register(meterRegistry));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<LongTaskTimer> buildLongTaskTimer(Timer methodTimer) {
         try {
             return Optional.of(LongTaskTimer
                     .builder(methodTimer.name())
