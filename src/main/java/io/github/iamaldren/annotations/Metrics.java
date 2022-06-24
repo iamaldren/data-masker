@@ -13,4 +13,10 @@ public @interface Metrics {
     String gauge() default "micrometer.handler.annotation.gauge";
     String count() default "micrometer.handler.annotation.count";
 
+    boolean enableTimer() default true;
+    boolean enableGauge() default true;
+    boolean enableCounter() default true;
+
+    String[] tags() default {};
+
 }

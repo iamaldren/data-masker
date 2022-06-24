@@ -11,4 +11,8 @@ public @interface Count {
 
     String name() default "micrometer.handler.annotation.count";
 
+    String[] tags() default {};
+
+    boolean countFailuresOnly() default false;
+
 }

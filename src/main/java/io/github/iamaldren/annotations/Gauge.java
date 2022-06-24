@@ -11,4 +11,6 @@ public @interface Gauge {
 
     String name() default "micrometer.handler.annotation.gauge";
 
+    String[] tags() default {};
+
 }
