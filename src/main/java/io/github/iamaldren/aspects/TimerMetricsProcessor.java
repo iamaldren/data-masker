@@ -115,7 +115,7 @@ public class TimerMetricsProcessor {
 
     private void log(long duration, Time methodTime) {
         if(methodTime.enableCustomLogging()) {
-            log.info(methodTime.loggingMessage(), TimeUnit.MILLISECONDS.convert(duration, TimeUnit.NANOSECONDS));
+            log.info(methodTime.loggingMessage(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS));
         } else {
             log.info("Total execution time for {} is {}ms", methodTime.name(), TimeUnit.MILLISECONDS.convert(duration, TimeUnit.NANOSECONDS));
         }

@@ -34,36 +34,24 @@ public class CounterMetricsProcessor {
         final Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
 
-        if (stopWhenCompleted) {
-            try {
+        try {
+            if (stopWhenCompleted) {
                 return ((CompletionStage<?>) joinPoint.proceed())
                         .whenComplete((result, throwable) -> recordCompletionResult(methodCount, throwable));
-            } catch (Throwable e) {
-                String errorCode = DEFAULT_ERROR_CODE_TAG_VALUE;
-                try {
-                    errorCode = (String) e.getClass().getDeclaredField("errorCode").get(e);
-                } catch (NoSuchFieldException | IllegalAccessException e1) {
-                    log.warn("No such errorCode field from class");
-                    //ignore
+            } else {
+                Object result = joinPoint.proceed();
+                if (!methodCount.countFailuresOnly()) {
+                    record(methodCount, DEFAULT_EXCEPTION_TAG_VALUE, RESULT_TAG_SUCCESS_VALUE, DEFAULT_ERROR_CODE_TAG_VALUE);
                 }
-                record(methodCount, e.getClass().getSimpleName(), RESULT_TAG_FAILURE_VALUE, errorCode);
-                throw e;
+                return result;
             }
-        }
-
-        try {
-            Object result = joinPoint.proceed();
-            if (!methodCount.countFailuresOnly()) {
-                record(methodCount, DEFAULT_EXCEPTION_TAG_VALUE, RESULT_TAG_SUCCESS_VALUE, DEFAULT_ERROR_CODE_TAG_VALUE);
-            }
-
-            return result;
         } catch (Throwable e) {
             String errorCode = DEFAULT_ERROR_CODE_TAG_VALUE;
             try {
                 errorCode = (String) e.getClass().getDeclaredField("errorCode").get(e);
             } catch (NoSuchFieldException | IllegalAccessException e1) {
                 log.warn("No such errorCode field from class");
+                //ignore
             }
             record(methodCount, e.getClass().getSimpleName(), RESULT_TAG_FAILURE_VALUE, errorCode);
             throw e;
@@ -84,15 +72,14 @@ public class CounterMetricsProcessor {
             String exceptionTagValue = throwable.getCause() == null ? throwable.getClass().getSimpleName()
                     : throwable.getCause().getClass().getSimpleName();
             record(methodCount, exceptionTagValue, RESULT_TAG_FAILURE_VALUE, errorCode);
-        }
-        else if (!methodCount.countFailuresOnly()) {
+        } else if (!methodCount.countFailuresOnly()) {
             record(methodCount, DEFAULT_EXCEPTION_TAG_VALUE, RESULT_TAG_SUCCESS_VALUE, DEFAULT_ERROR_CODE_TAG_VALUE);
         }
 
     }
 
     private void record(Count methodCount, String exception, String result, String errorCode) {
-        counter(methodCount)
+        this.counter(methodCount)
                 .tag(EXCEPTION_TAG, exception)
                 .tag(RESULT_TAG, result)
                 .tag(ERROR_CODE_TAG, errorCode)
@@ -101,7 +88,9 @@ public class CounterMetricsProcessor {
     }
 
     private Counter.Builder counter(Count methodCount) {
-        return Counter.builder(methodCount.name());
+        return Counter
+                .builder(methodCount.name())
+                .description(methodCount.description());
     }
 
 }
