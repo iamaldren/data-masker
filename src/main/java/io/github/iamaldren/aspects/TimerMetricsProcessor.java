@@ -52,7 +52,7 @@ public class TimerMetricsProcessor {
 
     private void stopTimer(Timer.Sample timer, Time methodTime) {
         long duration = stopSampleTimer(timer, methodTime);
-        log.debug("Total execution time for {} is {}ms", methodTime.name(), TimeUnit.MILLISECONDS.convert(duration, TimeUnit.NANOSECONDS));
+        log(duration, methodTime);
     }
 
     private long stopSampleTimer(Timer.Sample timer, Time methodTime) {
@@ -95,8 +95,8 @@ public class TimerMetricsProcessor {
 
     private void stopLongTaskTimer(LongTaskTimer.Sample sample, Time methodTime) {
         try {
-            sample.stop();
-            log.debug("Total execution time for {} is {}ms", methodTime.name(), sample.duration(TimeUnit.MILLISECONDS));
+            long duration = sample.stop();
+            log(duration, methodTime);
         } catch (Exception e) {
             log.warn("Error stopping long task timer", e);
         }
@@ -110,6 +110,14 @@ public class TimerMetricsProcessor {
                     .register(meterRegistry));
         } catch (Exception e) {
             return Optional.empty();
+        }
+    }
+
+    private void log(long duration, Time methodTime) {
+        if(methodTime.enableCustomLogging()) {
+            log.info(methodTime.loggingMessage(), TimeUnit.MILLISECONDS.convert(duration, TimeUnit.NANOSECONDS));
+        } else {
+            log.info("Total execution time for {} is {}ms", methodTime.name(), TimeUnit.MILLISECONDS.convert(duration, TimeUnit.NANOSECONDS));
         }
     }
 

@@ -19,4 +19,8 @@ public @interface Time {
 
     boolean publishPercentiles() default false;
 
+    boolean enableCustomLogging() default false;
+
+    String loggingMessage() default "Total execution time is {}";
+
 }
