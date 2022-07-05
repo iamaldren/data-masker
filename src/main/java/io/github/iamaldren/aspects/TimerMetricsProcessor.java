@@ -25,6 +25,8 @@ public class TimerMetricsProcessor {
 
     @Around("@annotation(methodTime)")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint, Time methodTime) throws Throwable {
+        log.info("Executing time metric process");
+
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
 

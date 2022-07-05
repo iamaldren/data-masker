@@ -31,6 +31,8 @@ public class CounterMetricsProcessor {
 
     @Around("@annotation(methodCount)")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint, Count methodCount) throws Throwable {
+        log.info("Executing count metric process");
+
         final Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
 
@@ -51,7 +53,6 @@ public class CounterMetricsProcessor {
                 errorCode = (String) e.getClass().getDeclaredField("errorCode").get(e);
             } catch (NoSuchFieldException | IllegalAccessException e1) {
                 log.warn("No such errorCode field from class");
-                //ignore
             }
             record(methodCount, e.getClass().getSimpleName(), RESULT_TAG_FAILURE_VALUE, errorCode);
             throw e;
@@ -59,7 +60,6 @@ public class CounterMetricsProcessor {
     }
 
     private void recordCompletionResult(Count methodCount, Throwable throwable) {
-
         if (throwable != null) {
             String errorCode = DEFAULT_ERROR_CODE_TAG_VALUE;
             try {
