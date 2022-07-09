@@ -79,12 +79,14 @@ public class CounterMetricsProcessor {
     }
 
     private void record(Count methodCount, String exception, String result, String errorCode) {
+        log.info("Recording metric count for {0}", methodCount.name());
         this.counter(methodCount)
                 .tag(EXCEPTION_TAG, exception)
                 .tag(RESULT_TAG, result)
                 .tag(ERROR_CODE_TAG, errorCode)
                 .tags(methodCount.tags())
-                .register(meterRegistry).increment();
+                .register(meterRegistry)
+                .increment();
     }
 
     private Counter.Builder counter(Count methodCount) {

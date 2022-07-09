@@ -23,12 +23,32 @@ public class TimerMetricsProcessor {
 
     private final MeterRegistry meterRegistry;
 
-    @Around("@annotation(methodTime)")
-    public Object aroundAdvice(ProceedingJoinPoint joinPoint, Time methodTime) throws Throwable {
-        log.info("Executing time metric process");
+    @Around("@within(io.github.iamaldren.annotations.Time)")
+    public Object timeClassLevel(ProceedingJoinPoint joinPoint) throws Throwable {
+        log.info("Executing class level time metric process");
 
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        Class<?> clazz = method.getDeclaringClass();
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
+
+        Time methodTime = clazz.getAnnotation(Time.class);
+
+        if(methodTime.longTask()) {
+            return executeLongTimer(joinPoint, methodTime, stopWhenCompleted);
+        }
+
+        return executeTimer(joinPoint, methodTime, stopWhenCompleted);
+    }
+
+    @Around("execution (@io.github.iamaldren.annotations.Time * *.*(..))")
+    public Object timeTypeLevel(ProceedingJoinPoint joinPoint) throws Throwable {
+        log.info("Executing type level time metric process");
+
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        Class<?> clazz = method.getDeclaringClass();
+        final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
+
+        Time methodTime = clazz.getAnnotation(Time.class);
 
         if(methodTime.longTask()) {
             return executeLongTimer(joinPoint, methodTime, stopWhenCompleted);
