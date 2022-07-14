@@ -5,8 +5,8 @@ import lombok.Getter;
 @Getter
 public class MetricHandlerException extends Exception {
 
-    private String errorCode;
-    private String errorMessage;
+    private final String errorCode;
+    private final String errorMessage;
 
     public MetricHandlerException(String errorCode, String errorMessage) {
         this.errorCode = errorCode;

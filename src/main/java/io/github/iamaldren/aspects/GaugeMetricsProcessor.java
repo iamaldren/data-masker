@@ -18,7 +18,7 @@ public class GaugeMetricsProcessor {
     @Around("@annotation(methodGauge)")
     public Object aroundAdvice(ProceedingJoinPoint joinPoint, Gauge methodGauge) throws Throwable {
 
-         return null;
+        return null;
     }
 
 }

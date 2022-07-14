@@ -10,11 +10,15 @@ import java.lang.annotation.Target;
 public @interface Metrics {
 
     String timer() default "micrometer.handler.annotation.timer";
+
     String gauge() default "micrometer.handler.annotation.gauge";
+
     String count() default "micrometer.handler.annotation.count";
 
     boolean enableTimer() default true;
+
     boolean enableGauge() default true;
+
     boolean enableCounter() default true;
 
     String[] tags() default {};

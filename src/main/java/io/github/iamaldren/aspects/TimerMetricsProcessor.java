@@ -31,12 +31,12 @@ public class TimerMetricsProcessor {
         Class<?> clazz = method.getDeclaringClass();
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
 
-        if(!clazz.isAnnotationPresent(Time.class)) {
+        if (!clazz.isAnnotationPresent(Time.class)) {
             clazz = joinPoint.getTarget().getClass();
         }
         Time methodTime = clazz.getAnnotation(Time.class);
 
-        if(methodTime.longTask()) {
+        if (methodTime.longTask()) {
             return executeLongTimer(joinPoint, methodTime, stopWhenCompleted);
         }
 
@@ -51,7 +51,7 @@ public class TimerMetricsProcessor {
         Time methodTime = method.getAnnotation(Time.class);
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
 
-        if(methodTime.longTask()) {
+        if (methodTime.longTask()) {
             return executeLongTimer(joinPoint, methodTime, stopWhenCompleted);
         }
 
@@ -61,7 +61,7 @@ public class TimerMetricsProcessor {
     private Object executeTimer(ProceedingJoinPoint joinPoint, Time methodTime, boolean stopWhenCompleted) throws Throwable {
         Timer.Sample timer = Timer.start(meterRegistry);
 
-        if(stopWhenCompleted) {
+        if (stopWhenCompleted) {
             return ((CompletionStage<?>) joinPoint.proceed())
                     .whenComplete((result, throwable) -> stopTimer(timer, methodTime));
         }
@@ -84,7 +84,7 @@ public class TimerMetricsProcessor {
                     .builder(methodTime.name())
                     .tags(methodTime.tags());
 
-            if(methodTime.publishPercentiles()) {
+            if (methodTime.publishPercentiles()) {
                 builder.publishPercentileHistogram(methodTime.publishPercentiles());
                 builder.publishPercentiles(methodTime.percentiles());
             }
@@ -100,7 +100,7 @@ public class TimerMetricsProcessor {
     private Object executeLongTimer(ProceedingJoinPoint joinPoint, Time methodTime, boolean stopWhenCompleted) throws Throwable {
         Optional<LongTaskTimer.Sample> longTaskTimer = buildLongTaskTimer(methodTime).map(LongTaskTimer::start);
 
-        if(stopWhenCompleted) {
+        if (stopWhenCompleted) {
             return ((CompletionStage<?>) joinPoint.proceed())
                     .whenComplete((result, throwable) -> longTaskTimer.ifPresent(sample -> {
                         stopLongTaskTimer(sample, methodTime);
@@ -137,7 +137,7 @@ public class TimerMetricsProcessor {
     }
 
     private void log(long duration, Time methodTime) {
-        if(methodTime.enableCustomLogging()) {
+        if (methodTime.enableCustomLogging()) {
             log.info(methodTime.personalizedTimeLog(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS));
         } else {
             log.info("Total execution time for {} is {}{}", methodTime.name(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS), methodTime.timerUnit().name().toLowerCase());
