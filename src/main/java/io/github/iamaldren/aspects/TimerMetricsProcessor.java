@@ -31,6 +31,9 @@ public class TimerMetricsProcessor {
         Class<?> clazz = method.getDeclaringClass();
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
 
+        if(!clazz.isAnnotationPresent(Time.class)) {
+            clazz = joinPoint.getTarget().getClass();
+        }
         Time methodTime = clazz.getAnnotation(Time.class);
 
         if(methodTime.longTask()) {
@@ -45,10 +48,8 @@ public class TimerMetricsProcessor {
         log.info("Executing type level time metric process");
 
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
-        Class<?> clazz = method.getDeclaringClass();
+        Time methodTime = method.getAnnotation(Time.class);
         final boolean stopWhenCompleted = CompletionStage.class.isAssignableFrom(method.getReturnType());
-
-        Time methodTime = clazz.getAnnotation(Time.class);
 
         if(methodTime.longTask()) {
             return executeLongTimer(joinPoint, methodTime, stopWhenCompleted);
@@ -137,9 +138,9 @@ public class TimerMetricsProcessor {
 
     private void log(long duration, Time methodTime) {
         if(methodTime.enableCustomLogging()) {
-            log.info(methodTime.loggingMessage(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS));
+            log.info(methodTime.personalizedTimeLog(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS));
         } else {
-            log.info("Total execution time for {} is {}ms", methodTime.name(), TimeUnit.MILLISECONDS.convert(duration, TimeUnit.NANOSECONDS));
+            log.info("Total execution time for {} is {}{}", methodTime.name(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS), methodTime.timerUnit().name().toLowerCase());
         }
     }
 

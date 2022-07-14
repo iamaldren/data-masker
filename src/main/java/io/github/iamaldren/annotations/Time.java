@@ -22,6 +22,8 @@ public @interface Time {
 
     TimeUnit timerUnit() default TimeUnit.MILLISECONDS;
 
-    String loggingMessage() default "Total execution time is {}";
+    String personalizedTimeLog() default "Total execution time is {}";
+
+    String[] loggingParams() default {};
 
 }
