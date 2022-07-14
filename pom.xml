@@ -1,10 +1,9 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.iamaldren</groupId>
     <artifactId>micrometer-handler-annotation</artifactId>
-    <version>1.0.8-SNAPSHOT</version>
+    <version>1.0.8</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A lib that uses annotation to for Metrics execution</description>
@@ -40,7 +39,7 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>2.6.3</version>
-        <relativePath/>
+        <relativePath />
     </parent>
 
     <dependencies>
@@ -81,7 +80,7 @@
         <connection>scm:git:git://github.com/iamaldren/doc-converter-maven-plugin.git</connection>
         <developerConnection>scm:git:ssh://github.com:iamaldren/doc-converter-maven-plugin.git</developerConnection>
         <url>https://github.com/iamaldren/doc-converter-maven-plugin</url>
-        <tag>micrometer-handler-annotation-1.0.0</tag>
+        <tag>micrometer-handler-annotation-1.0.8</tag>
     </scm>
 
     <build>
