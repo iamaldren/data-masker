@@ -10,6 +10,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletionStage;
 
@@ -50,7 +51,9 @@ public class CounterMetricsProcessor {
         } catch (Throwable e) {
             String errorCode = DEFAULT_ERROR_CODE_TAG_VALUE;
             try {
-                errorCode = (String) e.getClass().getDeclaredField("errorCode").get(e);
+                Field privateField = e.getClass().getDeclaredField("errorCode");
+                privateField.setAccessible(true);
+                errorCode = (String) privateField.get(e);
             } catch (NoSuchFieldException | IllegalAccessException e1) {
                 log.warn("No such errorCode field from class");
             }
