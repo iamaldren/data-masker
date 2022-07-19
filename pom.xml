@@ -3,7 +3,7 @@
 
     <groupId>io.github.iamaldren</groupId>
     <artifactId>micrometer-handler-annotation</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.10-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A lib that uses annotation to for Metrics execution</description>
@@ -80,7 +80,7 @@
         <connection>scm:git:git://github.com/iamaldren/doc-converter-maven-plugin.git</connection>
         <developerConnection>scm:git:ssh://github.com:iamaldren/doc-converter-maven-plugin.git</developerConnection>
         <url>https://github.com/iamaldren/doc-converter-maven-plugin</url>
-        <tag>micrometer-handler-annotation-1.0.9</tag>
+        <tag>micrometer-handler-annotation-1.0.0</tag>
     </scm>
 
     <build>
