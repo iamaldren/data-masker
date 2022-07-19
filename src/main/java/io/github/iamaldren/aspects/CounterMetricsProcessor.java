@@ -54,6 +54,7 @@ public class CounterMetricsProcessor {
             } catch (NoSuchFieldException | IllegalAccessException e1) {
                 log.warn("No such errorCode field from class");
             }
+            log.info("Exception {} was thrown, with error code of {}.", e.getClass().getSimpleName(), errorCode);
             record(methodCount, e.getClass().getSimpleName(), RESULT_TAG_FAILURE_VALUE, errorCode);
             throw e;
         }
@@ -71,6 +72,7 @@ public class CounterMetricsProcessor {
 
             String exceptionTagValue = throwable.getCause() == null ? throwable.getClass().getSimpleName()
                     : throwable.getCause().getClass().getSimpleName();
+            log.info("Exception {} was thrown, with error code of {}.", exceptionTagValue, errorCode);
             record(methodCount, exceptionTagValue, RESULT_TAG_FAILURE_VALUE, errorCode);
         } else if (!methodCount.countFailuresOnly()) {
             record(methodCount, DEFAULT_EXCEPTION_TAG_VALUE, RESULT_TAG_SUCCESS_VALUE, DEFAULT_ERROR_CODE_TAG_VALUE);
@@ -79,7 +81,7 @@ public class CounterMetricsProcessor {
     }
 
     private void record(Count methodCount, String exception, String result, String errorCode) {
-        log.info("Recording metric count for {0}", methodCount.name());
+        log.info("Recording metric count for {}", methodCount.name());
         this.counter(methodCount)
                 .tag(EXCEPTION_TAG, exception)
                 .tag(RESULT_TAG, result)
