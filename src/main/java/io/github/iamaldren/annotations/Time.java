@@ -12,6 +12,8 @@ public @interface Time {
 
     String[] tags() default {};
 
+    String[] event() default {};
+
     boolean longTask() default false;
 
     double[] percentiles() default {};
@@ -23,7 +25,5 @@ public @interface Time {
     TimeUnit timerUnit() default TimeUnit.MILLISECONDS;
 
     String personalizedTimeLog() default "Total execution time is {}";
-
-    String[] loggingParams() default {};
 
 }

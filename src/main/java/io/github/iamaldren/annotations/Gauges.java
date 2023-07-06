@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Gauge {
+public @interface Gauges {
 
     String name() default "micrometer.handler.annotation.gauge";
 

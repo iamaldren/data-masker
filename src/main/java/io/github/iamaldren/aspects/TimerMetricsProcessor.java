@@ -23,9 +23,11 @@ public class TimerMetricsProcessor {
 
     private final MeterRegistry meterRegistry;
 
+    private final static String TIME_LOGGING = "{\"api_name\": \"{}\", \"time_taken\": {}, \"time_unit\": \"{}\", \"event\": \"{}\"}";
+
     @Around("@within(io.github.iamaldren.annotations.Time)")
     public Object timeClassLevel(ProceedingJoinPoint joinPoint) throws Throwable {
-        log.info("Executing class level time metric process");
+        log.debug("Executing class level time metric process");
 
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         Class<?> clazz = method.getDeclaringClass();
@@ -45,7 +47,7 @@ public class TimerMetricsProcessor {
 
     @Around("execution (@io.github.iamaldren.annotations.Time * *.*(..))")
     public Object timeTypeLevel(ProceedingJoinPoint joinPoint) throws Throwable {
-        log.info("Executing type level time metric process");
+        log.debug("Executing type level time metric process");
 
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         Time methodTime = method.getAnnotation(Time.class);
@@ -140,7 +142,7 @@ public class TimerMetricsProcessor {
         if (methodTime.enableCustomLogging()) {
             log.info(methodTime.personalizedTimeLog(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS));
         } else {
-            log.info("Total execution time for {} is {}{}", methodTime.name(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS), methodTime.timerUnit().name().toLowerCase());
+            log.info(TIME_LOGGING, methodTime.name(), methodTime.timerUnit().convert(duration, TimeUnit.NANOSECONDS), methodTime.timerUnit().name().toLowerCase(), methodTime.event());
         }
     }
 
